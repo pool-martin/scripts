@@ -87,7 +87,7 @@ def create_split(args):
     testDir = os.path.join(dataRoot, 'splits', 'split' + str(split), 'validation')
     #testDir = os.path.join(dataRoot, 'rgb', 'jpg');
     # Loop over possible window sizes
-    targetDir = os.path.join(dataRoot, 'splits', 'split' + str(split), targetTestDir + '_' + args.time_window + '_' + args.time_slide + '_'+ str(nFrames) + '_' + str(slide))
+    targetDir = os.path.join(dataRoot, 'splits', 'split' + str(split), targetTestDir + '_' + str(args.time_window) + '_' + str(args.time_slide) + '_'+ str(nFrames) + '_' + str(slide))
     print ('targetDir: ' + targetDir)
 
     classes = ['NonPorn','Porn']
