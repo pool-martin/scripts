@@ -21,7 +21,7 @@ generate_sliding_test_clips.
 - Authors: Joao Paulo Martin (joao.paulo.pmartin@gmail.com) 
 ''' 
 
-dataRoot = '/data/torch/ltc/datasets/2kporn/';
+dataRoot = '/data/torch/ltc/datasets/2kporn/'
 targetTestDir = 'validation'
 import os, sys, time, argparse
 import math
@@ -48,7 +48,7 @@ def load_args():
 	args = ap.parse_args()
 
 	
-	print args
+	print(args)
 	
 	return args
 
@@ -62,17 +62,17 @@ def eval_validation(args):
 
     for i in range(args.inicio,args.fim+1):
         command = "th main.lua -nFrames 80 -stream rgb -expName %s -dataset 2kporn  -dropout 0.5 -batchSize 1 -cropbeforeresize -evaluate -modelNo %d -slide %d -time_window 0 -framestep 1" % (args.exp, i, args.slide)
-        print command
+        print(command)
         call(command, shell=True)
 
 def main():
     args = load_args()
 
-    print '> Eval validation split from videos -', time.asctime( time.localtime(time.time()) )
+    print('> Eval validation split from videos -', time.asctime( time.localtime(time.time()) ))
 
     eval_validation(args)
 
-    print '\n> Eval validation split  from videos done -', time.asctime( time.localtime(time.time()) )
+    print('\n> Eval validation split  from videos done -', time.asctime( time.localtime(time.time()) ))
 
     return 0
 

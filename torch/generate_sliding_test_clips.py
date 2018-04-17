@@ -21,11 +21,24 @@ generate_sliding_test_clips.
 - Authors: Joao Paulo Martin (joao.paulo.pmartin@gmail.com) 
 ''' 
 
-dataRoot = '/data/torch/ltc/datasets/2kporn/';
+dataRoot = '/data/torch/ltc/datasets/2kporn/'
+dimensionsDir = '/DL/2kporn/video_fps'
 targetTestDir = 'validation'
 import os, sys, time, argparse
 import math
 from subprocess import call
+
+def getVideoFPS(video_name):
+    if "_" in video_name:
+        video_name = video_name[1:-17]
+
+    etf_file = os.path.join(dimensionsDir, video_name + '.etf')
+    print(video_name + ' ' + etf_file)
+    with open(etf_file, mode='r') as f:
+        line = f.readline()
+
+    print(video_name + '  ' + line.strip()) 
+    return float(line.strip())
 
 def load_args():
 	ap = argparse.ArgumentParser(description='Create test split.')
@@ -33,14 +46,22 @@ def load_args():
 					dest='split_number',
 					help='split to be created.',
 					type=int, required=False, default=1)
-	ap.add_argument('-w', '--window',
-					dest='w',
-					help='Window to use.',
+	ap.add_argument('-w', '--time_window',
+					dest='time_window',
+					help='window to use.',
+					type=int, required=False, default=5)
+	ap.add_argument('-ts', '--time_slide',
+					dest='time_slide',
+					help='time slide to use.',
+					type=int, required=False, default=1)
+	ap.add_argument('-slide', '--slide',
+					dest='slide',
+					help='slide to use.',
 					type=int, required=False, default=80)
-	ap.add_argument('-skip', '--skip',
-					dest='skip',
-					help='skip to use.',
-					type=int, required=False, default=99)
+	ap.add_argument('-n', '--nFrames',
+					dest='nFrames',
+					help='nFrames to use.',
+					type=int, required=False, default=80)
 	ap.add_argument('-st', '--split-type',
 					dest='split_type',
 					help='split type.',
@@ -48,7 +69,7 @@ def load_args():
 	args = ap.parse_args()
 
 	
-	print args
+	print(args)
 	
 	return args
 
@@ -60,25 +81,26 @@ def get_dir_content(folder):
 
 def create_split(args):
     split = args.split_number
-    W = args.w
-    skip = args.skip
-    testDir = os.path.join(dataRoot, 'splits', 'split' + str(split), 'validation');
+    nFrames = args.nFrames
+    slide = args.slide
+
+    testDir = os.path.join(dataRoot, 'splits', 'split' + str(split), 'validation')
     #testDir = os.path.join(dataRoot, 'rgb', 'jpg');
     # Loop over possible window sizes
-    targetDir = os.path.join(dataRoot, 'splits', 'split' + str(split), targetTestDir + '_'+ str(W) + '_' + str(skip))
-    
+    targetDir = os.path.join(dataRoot, 'splits', 'split' + str(split), targetTestDir + '_' + args.time_window + '_' + args.time_slide + '_'+ str(nFrames) + '_' + str(slide))
+    print ('targetDir: ' + targetDir)
+
     classes = ['NonPorn','Porn']
     
-    C = len(classes);
-    
     for video_class in classes:
-        print ('Class: ' + video_class);
+        print ('Class: ' + video_class)
         command = "mkdir -p " + os.path.join(targetDir, video_class)
-        print command
+        print(command)
         call(command, shell=True)
         videos = get_dir_content(os.path.join(testDir, video_class))
         for video in videos:
-            print ('Class :' + video_class + ' - Video :' + video);
+            print ('Class :' + video_class + ' - Video :' + video)
+
             #frames = get_dir_content(os.path.join(dataRoot, 'rgb', 'jpg', video));
             #totalDuration = len(frames); # note: nFlow = nRGB -1
             #"vPorn000157_00310_27197.mp4"
@@ -88,37 +110,43 @@ def create_split(args):
             end   = int(video_splited[2].split('.')[0])
             extension = video_splited[2].split('.')[1]
             totalDuration = end - begin + 1
+
+            if(args.time_window > 0):
+                fps = getVideoFPS(video_splited[0])
+                nFrames = int(math.floor(fps * args.time_window))
+                if(args.time_slide > 0):
+                    slide   = int(math.floor(fps * args.time_slide))
             
-            nClips = int(math.ceil((totalDuration - W)/float(skip)) + 1)
-            if(totalDuration < W):
-                nClips = 1;
-                command = "touch ''%s''" % (os.path.join(targetDir, video_class, video));
-                print command
+            if(totalDuration < nFrames):
+                nClips = 1
+                command = "touch ''%s''" % (os.path.join(targetDir, video_class, video))
+                print(command)
                 call(command, shell=True)
             else:
                 if(args.split_type == "normal"):
+                    nClips = int(math.ceil((totalDuration - nFrames)/float(slide)) + 1)
                     for tt in range(0,nClips):
-                        n_begin = begin + tt * skip
-                        n_end = n_begin + W -1
+                        n_begin = begin + tt * slide
+                        n_end = n_begin + nFrames -1
                         if n_end > end:
                             n_end = end
-                            n_begin = n_end - W + 1
-                        command = "touch ''%s''" % (os.path.join(targetDir, video_class, video_splited[0] + '_' + "%.05d" % (n_begin) + '_' + "%.05d" % (n_end) + '.' + extension));
-                        print command
+                            n_begin = n_end - nFrames + 1
+                        command = "touch ''%s''" % (os.path.join(targetDir, video_class, video_splited[0] + '_' + "%.05d" % (n_begin) + '_' + "%.05d" % (n_end) + '.' + extension))
+                        print(command)
                         call(command, shell=True)
                 elif(args.split_type == "minimal"):
-                    command = "touch ''%s''" % (os.path.join(targetDir, video_class, video_splited[0] + '_' + "%.05d" % (begin) + '_' + "%.05d" % (begin + W - 1) + '.' + extension));
-                    print command
+                    command = "touch ''%s''" % (os.path.join(targetDir, video_class, video_splited[0] + '_' + "%.05d" % (begin) + '_' + "%.05d" % (begin + nFrames - 1) + '.' + extension))
+                    print(command)
                     call(command, shell=True)
 
 def main():
     args = load_args()
 
-    print '> Create test splits from videos -', time.asctime( time.localtime(time.time()) )
+    print('> Create test splits from videos -', time.asctime( time.localtime(time.time()) ))
 
     create_split(args)
 
-    print '\n> Create test splits  from videos done -', time.asctime( time.localtime(time.time()) )
+    print('\n> Create test splits  from videos done -', time.asctime( time.localtime(time.time()) ))
 
     return 0
 
